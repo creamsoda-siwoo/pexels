@@ -68,6 +68,7 @@
             display: flex; align-items: center; justify-content: center;
             color: rgba(255, 255, 255, 0.6);
             transition: all 0.1s;
+            cursor: pointer;
         }
         .d-pad-btn:active, .d-pad-btn.active {
             background: rgba(255, 255, 255, 0.3);
@@ -82,6 +83,7 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             transition: transform 0.1s;
+            cursor: pointer;
         }
         .action-btn:active { transform: scale(0.85); filter: brightness(1.2); }
 
@@ -96,16 +98,16 @@
 <script type="importmap">
 {
   "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "@react-three/drei": "https://aistudiocdn.com/@react-three/drei@^10.7.7",
     "@react-three/fiber": "https://aistudiocdn.com/@react-three/fiber@^9.4.0",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+    "@react-three/drei": "https://aistudiocdn.com/@react-three/drei@^10.7.7",
     "three": "https://aistudiocdn.com/three@^0.181.2",
-    "@react-three/postprocessing": "https://aistudiocdn.com/@react-three/postprocessing@^3.0.4",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0"
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@react-three/postprocessing": "https://aistudiocdn.com/@react-three/postprocessing@^3.0.4"
   }
 }
 </script>
@@ -117,10 +119,14 @@
         const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
         // --- Sound System ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Safe AudioContext creation
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = AudioContext ? new AudioContext() : null;
         
         const playSound = (type) => {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume().catch(e => console.log(e));
+            
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             osc.connect(gainNode);
@@ -191,7 +197,7 @@
             Sword: (p) => <Icon {...p} d="M14.5 17.5L3 6V3h3l11.5 11.5m-1.5 1.5l6-6M16 16l4 4M19 21l2-2" />,
             Bow: (p) => <Icon {...p} d="M12 2a10 10 0 0 0 0 20M12 2v20M2 12h20" />,
             Staff: (p) => <Icon {...p} d="m2 22 20-20m-2 2a2 2 0 1 0 2.8-2.8 2 2 0 0 0-2.8 2.8z" />,
-            Dagger: (p) => <Icon {...p} d="M14.5 9.5 19 5l-2.5-2.5L12 7l-9 9 2.5 2.5 9-9Z" />, // Assassin
+            Dagger: (p) => <Icon {...p} d="M14.5 9.5 19 5l-2.5-2.5L12 7l-9 9 2.5 2.5 9-9Z" />, 
             Shield: (p) => <Icon {...p} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />,
             Heart: (p) => <Icon {...p} d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />,
             Zap: (p) => <Icon {...p} d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />,
@@ -199,14 +205,13 @@
             Coin: (p) => <Icon {...p} d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z" />,
             Shop: (p) => <Icon {...p} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" />,
             Crosshair: (p) => <Icon {...p} d="M12 2v20M2 12h20M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />,
-            Wind: (p) => <Icon {...p} d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />, // Dash
-            Ring: (p) => <Icon {...p} d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 6a6 6 0 1 1 0 12 6 6 0 0 1 0-12z" />, // Artifact
-            Boot: (p) => <Icon {...p} d="M4 19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-1-1.73l-4-2.3a2 2 0 0 0-2 0l-4 2.3A2 2 0 0 0 8 11v8z" />, // Boot
+            Wind: (p) => <Icon {...p} d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />, 
+            Ring: (p) => <Icon {...p} d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 6a6 6 0 1 1 0 12 6 6 0 0 1 0-12z" />, 
+            Boot: (p) => <Icon {...p} d="M4 19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-1-1.73l-4-2.3a2 2 0 0 0-2 0l-4 2.3A2 2 0 0 0 8 11v8z" />, 
             X: (p) => <Icon {...p} d="M18 6 6 18M6 6l12 12" />,
             RotateCcw: (p) => <Icon {...p} d="M3 2v6h6M3 13a9 9 0 1 0 3-7.7L3 8" />,
             Check: (p) => <Icon {...p} d="M20 6 9 17l-5-5" />,
-            Target: (p) => <Icon {...p} d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm-3 6h6m-3-3v6" />, // Auto Aim indicator
-            
+            Target: (p) => <Icon {...p} d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm-3 6h6m-3-3v6" />, 
             ArrowUp: (p) => <Icon {...p} d="M12 19V5M5 12l7-7 7 7" />,
             ArrowDown: (p) => <Icon {...p} d="M12 5v14M19 12l-7 7-7-7" />,
             ArrowLeft: (p) => <Icon {...p} d="M19 12H5M12 19l-7-7 7-7" />,
@@ -235,7 +240,6 @@
 
         // --- Main Component ---
         function App() {
-            // Game State
             const [gameState, setGameState] = useState('SELECT_CLASS');
             const [floor, setFloor] = useState(1);
             const [player, setPlayer] = useState({ 
@@ -252,7 +256,6 @@
             const [showShop, setShowShop] = useState(false);
             const [shopItems, setShopItems] = useState([]);
 
-            // Ref Logic (For loop performance)
             const stateRef = useRef({
                 player: {},
                 enemies: [],
@@ -264,13 +267,12 @@
                 lastSkill: 0,
                 lastDash: 0,
                 gameActive: false,
-                invincible: 0 // invincibility frames
+                invincible: 0 
             });
 
             const loopRef = useRef(null);
             const containerRef = useRef(null);
 
-            // Helpers
             const addLog = (msg) => setLogs(p => [msg, ...p].slice(0, 4));
             
             const spawnParticle = (x, y, type, value, color) => {
@@ -287,9 +289,9 @@
                 return { bg: '#290f0f', wall: '#471a1a', name: '용암 동굴' };
             };
 
-            // Calculate Stats with Artifacts
             const getStats = () => {
                 const p = stateRef.current.player;
+                if (!p || !p.artifacts) return { speed: 4, atk: 10 };
                 const hasArt = (id) => p.artifacts.includes(id);
                 
                 let speed = p.speed * (hasArt('hermes') ? 1.2 : 1);
@@ -314,8 +316,12 @@
                 return nearest;
             };
 
-            // Init
             const initGame = (classType) => {
+                // Ensure Audio Context is active on user interaction
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
                 const stats = CLASSES[classType];
                 const initialPlayer = {
                     x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2,
@@ -329,24 +335,28 @@
                     artifacts: []
                 };
                 
+                // Reset all state completely
                 setPlayer(initialPlayer);
                 setFloor(1);
                 setEnemies([]);
                 setProjectiles([]);
+                setParticles([]);
                 setLogs([`던전에 입장했습니다. [${CLASSES[classType].name}]`]);
                 setBossActive(false);
                 setShowShop(false);
 
                 stateRef.current = {
-                    ...stateRef.current,
                     player: initialPlayer,
                     enemies: [],
                     projectiles: [],
                     particles: [],
                     floor: 1,
                     gameActive: true,
-                    keys: {},
-                    invincible: 0
+                    keys: {}, // Clear keys to prevent sticking
+                    invincible: 0,
+                    lastShot: 0,
+                    lastSkill: 0,
+                    lastDash: 0
                 };
                 
                 setGameState('PLAYING');
@@ -355,15 +365,14 @@
             const resetGame = () => {
                 if (loopRef.current) cancelAnimationFrame(loopRef.current);
                 stateRef.current.gameActive = false;
+                stateRef.current.keys = {}; // Clear input
                 setGameState('SELECT_CLASS');
             };
 
             const openShop = () => {
                 const available = ARTIFACTS.filter(a => !stateRef.current.player.artifacts.includes(a.id));
                 const shop = [];
-                // Potion
                 shop.push({ type: 'potion', name: '회복 포션', desc: '체력 50% 회복', cost: 50, icon: Icons.Heart, color: '#f43f5e' });
-                // Random Artifacts (max 2)
                 for(let i=0; i<2; i++) {
                     if (available.length > 0) {
                         const idx = Math.floor(Math.random() * available.length);
@@ -374,7 +383,7 @@
                 }
                 setShopItems(shop);
                 setShowShop(true);
-                stateRef.current.gameActive = false; // Pause
+                stateRef.current.gameActive = false;
             };
 
             const buyItem = (item) => {
@@ -388,8 +397,8 @@
                         p.artifacts.push(item.id);
                         addLog(`${item.name} 획득!`);
                     }
-                    setPlayer({ ...p }); // force update UI
-                    setShopItems(prev => prev.filter(i => i !== item)); // remove bought
+                    setPlayer({ ...p });
+                    setShopItems(prev => prev.filter(i => i !== item));
                     playSound('coin');
                 } else {
                     addLog('골드가 부족합니다!');
@@ -399,10 +408,8 @@
             const closeShop = () => {
                 setShowShop(false);
                 stateRef.current.gameActive = true;
-                // Resume game loop manually handled by effect check
             };
 
-            // Spawning
             const spawnEnemy = (isBoss) => {
                 const floorMult = stateRef.current.floor;
                 const biome = Math.floor((floorMult - 1) / 5) % 3;
@@ -426,14 +433,11 @@
                 const hp = Math.floor(baseHp + (floorMult * 25));
                 
                 stateRef.current.enemies.push({
-                    id: Math.random(),
-                    x, y,
-                    type,
+                    id: Math.random(), x, y, type,
                     hp, maxHp: hp,
                     atk: 5 + floorMult * 2,
                     speed: isBoss ? 2 : (2 + Math.random()),
-                    width: isBoss ? 96 : 32,
-                    height: isBoss ? 96 : 32,
+                    width: isBoss ? 96 : 32, height: isBoss ? 96 : 32,
                     isHit: 0,
                     color: isBoss ? '#ef4444' : (type==='SLIME'?'#4ade80': type==='GOBLIN'?'#166534':'#b91c1c')
                 });
@@ -445,27 +449,21 @@
                 }
             };
 
-            // Actions
             const handleDash = () => {
                 const now = Date.now();
-                if (now - stateRef.current.lastDash < 1000) return; // 1s CD
-                
+                if (now - stateRef.current.lastDash < 1000) return;
                 const p = stateRef.current.player;
                 stateRef.current.lastDash = now;
-                stateRef.current.invincible = 20; // 0.3s approx
+                stateRef.current.invincible = 20;
                 playSound('dash');
-                
-                // Dash Movement
                 let dx=0, dy=0;
                 const dashPower = 150;
                 if (p.direction === 'up') dy = -dashPower;
                 else if (p.direction === 'down') dy = dashPower;
                 else if (p.direction === 'left') dx = -dashPower;
                 else dx = dashPower;
-
                 p.x = Math.max(0, Math.min(GAME_WIDTH - PLAYER_SIZE, p.x + dx));
                 p.y = Math.max(0, Math.min(GAME_HEIGHT - PLAYER_SIZE, p.y + dy));
-                
                 spawnParticle(p.x, p.y, 'text', 'DASH!', '#fff');
             };
 
@@ -473,18 +471,16 @@
                 const p = stateRef.current.player;
                 const stats = getStats();
                 const speed = 12;
-                
                 for(let i=0; i<count; i++) {
                     const finalAngle = angle + (i - (count-1)/2) * spread;
                     stateRef.current.projectiles.push({
                         id: Math.random(),
                         x: p.x + PLAYER_SIZE/2, y: p.y + PLAYER_SIZE/2,
-                        vx: Math.cos(finalAngle) * speed,
-                        vy: Math.sin(finalAngle) * speed,
+                        vx: Math.cos(finalAngle) * speed, vy: Math.sin(finalAngle) * speed,
                         life: 40,
                         color: p.classType === 'wizard' ? '#c084fc' : '#fff',
                         damage: stats.atk,
-                        isPierce: p.artifacts.includes('multishot') // Multishot artifact gives piercing too
+                        isPierce: p.artifacts.includes('multishot')
                     });
                 }
                 playSound('shoot');
@@ -493,32 +489,22 @@
             const handleAttack = () => {
                 const now = Date.now();
                 const p = stateRef.current.player;
-                // Attack Speed based on class + artifacts
                 const cooldown = p.classType === 'assassin' ? 200 : 350;
-                
                 if (now - stateRef.current.lastShot < cooldown) return;
                 stateRef.current.lastShot = now;
 
                 const stats = getStats();
                 const projCount = p.artifacts.includes('multishot') ? (p.classType==='hunter'? 3 : 2) : 1;
                 
-                // AUTO AIM LOGIC
                 const nearest = getNearestEnemy();
                 let attackAngle = 0;
-                
                 if (nearest) {
                     const dx = (nearest.x + nearest.width/2) - (p.x + PLAYER_SIZE/2);
                     const dy = (nearest.y + nearest.height/2) - (p.y + PLAYER_SIZE/2);
                     attackAngle = Math.atan2(dy, dx);
-                    
-                    // Update Face Direction
-                    if (Math.abs(dx) > Math.abs(dy)) {
-                        p.direction = dx > 0 ? 'right' : 'left';
-                    } else {
-                        p.direction = dy > 0 ? 'down' : 'up';
-                    }
+                    if (Math.abs(dx) > Math.abs(dy)) p.direction = dx > 0 ? 'right' : 'left';
+                    else p.direction = dy > 0 ? 'down' : 'up';
                 } else {
-                    // Default if no enemy
                     if (p.direction === 'right') attackAngle = 0;
                     else if (p.direction === 'down') attackAngle = Math.PI / 2;
                     else if (p.direction === 'left') attackAngle = Math.PI;
@@ -526,9 +512,7 @@
                 }
 
                 if (p.classType === 'knight' || p.classType === 'assassin') {
-                    // Melee
                     let hx = p.x, hy = p.y, hw = 48, hh = 48;
-                    // Auto-adjust hitbox center based on attack angle if target exists, else use direction
                     if (nearest) {
                         hx = p.x + Math.cos(attackAngle) * 40;
                         hy = p.y + Math.sin(attackAngle) * 40;
@@ -538,33 +522,21 @@
                          if (p.direction === 'up') hy -= 40;
                          if (p.direction === 'down') hy += 40;
                     }
-                    
                     let hit = false;
                     stateRef.current.enemies.forEach(e => {
-                        // Simple box check around hit point
                         if (hx < e.x + e.width + 20 && hx + hw > e.x - 20 && 
                             hy < e.y + e.height + 20 && hy + hh > e.y - 20) {
                             let dmg = stats.atk;
                             let isCrit = false;
-                            
-                            if (p.classType === 'assassin' && Math.random() < 0.3) {
-                                dmg *= 2.5; isCrit = true;
-                            }
-                            
-                            e.hp -= dmg;
-                            e.isHit = 5;
+                            if (p.classType === 'assassin' && Math.random() < 0.3) { dmg *= 2.5; isCrit = true; }
+                            e.hp -= dmg; e.isHit = 5;
                             spawnParticle(e.x, e.y, 'dmg', Math.floor(dmg), isCrit ? '#f43f5e' : '#fff');
                             hit = true;
-
-                            // Vampire
-                            if (p.artifacts.includes('vampire')) {
-                                p.hp = Math.min(p.maxHp, p.hp + 3);
-                            }
+                            if (p.artifacts.includes('vampire')) p.hp = Math.min(p.maxHp, p.hp + 3);
                         }
                     });
                     if (hit) playSound('hit');
                 } else {
-                    // Ranged
                     shootProjectile(attackAngle, projCount, 0.3);
                 }
             };
@@ -572,14 +544,8 @@
             const handleSkill = () => {
                 const now = Date.now();
                 const p = stateRef.current.player;
-                if (now - stateRef.current.lastSkill < 5000) {
-                    addLog("스킬 쿨타임!");
-                    return;
-                }
-                if (p.mp < 20) {
-                    addLog("마나 부족!");
-                    return;
-                }
+                if (now - stateRef.current.lastSkill < 5000) { addLog("스킬 쿨타임!"); return; }
+                if (p.mp < 20) { addLog("마나 부족!"); return; }
 
                 p.mp -= 20;
                 stateRef.current.lastSkill = now;
@@ -587,62 +553,48 @@
                 const stats = getStats();
 
                 if (p.classType === 'knight') {
-                    // Divine Shield
-                    stateRef.current.invincible = 180; // 3 sec
+                    stateRef.current.invincible = 180;
                     addLog("디바인 쉴드 발동!");
                 } 
                 else if (p.classType === 'hunter') {
-                    // Arrow Rain
                     addLog("화살비!");
                     for(let i=0; i<20; i++) {
                         setTimeout(() => {
                             const tx = Math.random() * GAME_WIDTH;
                             const ty = Math.random() * GAME_HEIGHT;
                             spawnParticle(tx, ty, 'text', '⬇', '#4ade80');
-                            // AoE logic simplified: random enemies take damage
                             stateRef.current.enemies.forEach(e => {
-                                if(Math.random() < 0.3) {
-                                    e.hp -= stats.atk * 0.5;
-                                    e.isHit = 3;
-                                }
+                                if(Math.random() < 0.3) { e.hp -= stats.atk * 0.5; e.isHit = 3; }
                             });
                         }, i * 100);
                     }
                 } 
                 else if (p.classType === 'wizard') {
-                    // Chain Lightning
                     addLog("체인 라이트닝!");
                     const targets = stateRef.current.enemies.filter(e => e.x > 0 && e.x < GAME_WIDTH && e.y > 0 && e.y < GAME_HEIGHT);
                     if (targets.length > 0) {
                         let curr = targets[0];
                         for(let i=0; i<5; i++) {
                             if (!curr) break;
-                            curr.hp -= stats.atk * 2;
-                            curr.isHit = 10;
+                            curr.hp -= stats.atk * 2; curr.isHit = 10;
                             spawnParticle(curr.x, curr.y, 'text', '⚡', '#c084fc');
-                            // find next closest
                             curr = targets.find(t => t !== curr && Math.abs(t.x - curr.x) < 200);
                         }
                     }
                 }
                 else if (p.classType === 'assassin') {
-                    // Shadow Step
                     const target = stateRef.current.enemies[0];
                     if (target) {
-                        p.x = target.x - 40;
-                        p.y = target.y;
-                        target.hp -= stats.atk * 5; // Huge burst
-                        target.isHit = 10;
+                        p.x = target.x - 40; p.y = target.y;
+                        target.hp -= stats.atk * 5; target.isHit = 10;
                         spawnParticle(target.x, target.y, 'text', 'CRITICAL!', '#f43f5e');
                         addLog("그림자 습격!");
                     } else {
-                        addLog("타겟 없음");
-                        p.mp += 20; // Refund
+                        addLog("타겟 없음"); p.mp += 20;
                     }
                 }
             };
 
-            // --- Game Loop ---
             useEffect(() => {
                 if (gameState !== 'PLAYING') return;
 
@@ -656,7 +608,6 @@
                     const keys = stateRef.current.keys;
                     const stats = getStats();
                     
-                    // 1. Move
                     let dx = 0, dy = 0;
                     if (keys['ArrowUp'] || keys['w']) { dy = -stats.speed; p.direction = 'up'; }
                     if (keys['ArrowDown'] || keys['s']) { dy = stats.speed; p.direction = 'down'; }
@@ -666,34 +617,24 @@
                     p.x = Math.max(0, Math.min(GAME_WIDTH - PLAYER_SIZE, p.x + dx));
                     p.y = Math.max(0, Math.min(GAME_HEIGHT - PLAYER_SIZE, p.y + dy));
 
-                    // Invincibility
                     if (stateRef.current.invincible > 0) {
                         stateRef.current.invincible--;
                         if (p.classType === 'knight' && stateRef.current.invincible % 10 === 0) {
-                            // Burn aura damage
                             stateRef.current.enemies.forEach(e => {
                                 if (Math.abs(e.x - p.x) < 100 && Math.abs(e.y - p.y) < 100) {
-                                    e.hp -= stats.atk * 0.2;
-                                    e.isHit = 2;
+                                    e.hp -= stats.atk * 0.2; e.isHit = 2;
                                 }
                             });
                         }
                     }
-
-                    // Mana Regen
                     if (p.mp < p.maxMp) p.mp += p.artifacts.includes('mana') ? 0.2 : 0.1;
 
-                    // 2. Projectiles
                     stateRef.current.projectiles = stateRef.current.projectiles.filter(proj => {
-                        proj.x += proj.vx;
-                        proj.y += proj.vy;
-                        proj.life--;
-                        
+                        proj.x += proj.vx; proj.y += proj.vy; proj.life--;
                         let hit = false;
                         for (let e of stateRef.current.enemies) {
                             if (proj.x > e.x && proj.x < e.x + e.width && proj.y > e.y && proj.y < e.y + e.height) {
-                                e.hp -= proj.damage;
-                                e.isHit = 5;
+                                e.hp -= proj.damage; e.isHit = 5;
                                 spawnParticle(e.x, e.y, 'dmg', Math.floor(proj.damage), '#fff');
                                 hit = true;
                                 if (!proj.isPierce) break; 
@@ -702,88 +643,59 @@
                         return proj.life > 0 && (!hit || proj.isPierce);
                     });
 
-                    // 3. Enemies
                     let enemiesAlive = [];
                     stateRef.current.enemies.forEach(e => {
                         if (e.hp <= 0) {
-                            // Drop
                             const goldDrop = Math.floor(Math.random() * 10 * stateRef.current.floor) + 5;
-                            p.gold += goldDrop;
-                            p.exp += 25 * stateRef.current.floor;
+                            p.gold += goldDrop; p.exp += 25 * stateRef.current.floor;
                             spawnParticle(e.x, e.y, 'text', `+${goldDrop}G`, 'gold');
                             playSound('coin');
 
                             if (p.exp >= p.maxExp) {
-                                p.level++;
-                                p.exp -= p.maxExp;
+                                p.level++; p.exp -= p.maxExp;
                                 p.maxExp = Math.floor(p.maxExp * 1.3);
-                                p.maxHp += 20; p.hp = p.maxHp;
-                                p.atk += 3;
-                                playSound('levelup');
-                                spawnParticle(p.x, p.y, 'text', 'LEVEL UP!', '#fbbf24');
+                                p.maxHp += 20; p.hp = p.maxHp; p.atk += 3;
+                                playSound('levelup'); spawnParticle(p.x, p.y, 'text', 'LEVEL UP!', '#fbbf24');
                                 addLog(`레벨업! Lv.${p.level}`);
                             }
-
                             if (e.type === 'BOSS') {
-                                setBossActive(false);
-                                setFloor(f => f + 1);
-                                stateRef.current.floor++;
-                                p.hp = p.maxHp; // Full heal
-                                addLog(`✅ 층 클리어! 상점이 열립니다.`);
-                                openShop(); // Open shop after boss
+                                setBossActive(false); setFloor(f => f + 1); stateRef.current.floor++;
+                                p.hp = p.maxHp; addLog(`✅ 층 클리어! 상점이 열립니다.`);
+                                openShop();
                             }
                             return;
                         }
 
-                        // AI
-                        const dx = p.x - e.x;
-                        const dy = p.y - e.y;
+                        const dx = p.x - e.x; const dy = p.y - e.y;
                         const dist = Math.sqrt(dx*dx + dy*dy);
-                        if (dist > 5) {
-                            e.x += (dx/dist) * e.speed;
-                            e.y += (dy/dist) * e.speed;
-                        }
+                        if (dist > 5) { e.x += (dx/dist) * e.speed; e.y += (dy/dist) * e.speed; }
 
-                        // Hit Player
                         if (dist < 30 && stateRef.current.invincible <= 0) {
-                             // Cooldown on enemy attack? simplified random
                             if (Math.random() < 0.05) {
-                                p.hp -= e.atk;
-                                p.isHit = 10;
+                                p.hp -= e.atk; p.isHit = 10;
                                 spawnParticle(p.x, p.y, 'dmg', `-${e.atk}`, 'red');
                                 playSound('hit');
                                 if (p.hp <= 0) {
-                                    setGameState('DEAD');
-                                    stateRef.current.gameActive = false;
+                                    setGameState('DEAD'); stateRef.current.gameActive = false;
                                 }
                             }
                         }
-
                         if (e.isHit > 0) e.isHit--;
                         enemiesAlive.push(e);
                     });
                     stateRef.current.enemies = enemiesAlive;
 
-                    // 4. Spawn Logic
                     const maxEnemies = 5 + Math.floor(stateRef.current.floor / 2);
                     if (!bossActive && stateRef.current.gameActive && gameState === 'PLAYING') {
-                        if (Math.random() < 0.02 && enemiesAlive.length < maxEnemies) {
-                            spawnEnemy(false);
-                        }
+                        if (Math.random() < 0.02 && enemiesAlive.length < maxEnemies) spawnEnemy(false);
                     }
-                    if (stateRef.current.enemies.length === 0 && !bossActive && Math.random() < 0.005) {
-                        spawnEnemy(true); // Random boss encounter
-                    }
+                    if (stateRef.current.enemies.length === 0 && !bossActive && Math.random() < 0.005) spawnEnemy(true);
 
-                    // 5. Particles
                     stateRef.current.particles = stateRef.current.particles.filter(pt => {
-                        pt.x += pt.vx;
-                        pt.y += pt.vy;
-                        pt.life--;
+                        pt.x += pt.vx; pt.y += pt.vy; pt.life--;
                         return pt.life > 0;
                     });
 
-                    // Sync State for React
                     setPlayer({...p});
                     setEnemies([...stateRef.current.enemies]);
                     setProjectiles([...stateRef.current.projectiles]);
@@ -816,12 +728,20 @@
                 };
             }, [gameState, bossActive]);
 
+            // Helper for D-Pad events (supports both touch and mouse)
+            const bindDPad = (key) => ({
+                onTouchStart: (e) => { e.preventDefault(); stateRef.current.keys[key] = true; },
+                onTouchEnd: (e) => { e.preventDefault(); stateRef.current.keys[key] = false; },
+                onMouseDown: (e) => { e.preventDefault(); stateRef.current.keys[key] = true; },
+                onMouseUp: (e) => { e.preventDefault(); stateRef.current.keys[key] = false; },
+                onMouseLeave: (e) => { e.preventDefault(); stateRef.current.keys[key] = false; }
+            });
 
             // --- Render ---
             if (gameState === 'SELECT_CLASS') {
                 return (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 p-4">
-                        <h1 className="text-4xl mb-8 font-bold text-yellow-400 pixel-art">직업을 선택하세요</h1>
+                        <h1 className="text-4xl mb-8 font-bold text-yellow-400 pixel-art text-center">직업을 선택하세요</h1>
                         <div className="grid grid-cols-2 gap-4 max-w-2xl w-full">
                             {Object.entries(CLASSES).map(([key, cls]) => (
                                 <button key={key} onClick={() => initGame(key)} 
@@ -833,11 +753,7 @@
                                         {cls.weapon === 'dagger' && <Icons.Dagger size={40} />}
                                     </div>
                                     <h2 className="text-xl font-bold mb-2" style={{ color: cls.color }}>{cls.name}</h2>
-                                    <p className="text-sm text-gray-400 mb-2">{cls.desc}</p>
-                                    <div className="flex gap-2 text-xs text-gray-500">
-                                        <span>HP {cls.hp}</span>
-                                        <span>ATK {cls.atk}</span>
-                                    </div>
+                                    <p className="text-sm text-gray-400 mb-2 text-center">{cls.desc}</p>
                                 </button>
                             ))}
                         </div>
@@ -859,8 +775,6 @@
             }
 
             const biome = getBiomeStyle(floor);
-            
-            // Find nearest for target indicator
             let nearestEnemyId = null;
             if (enemies.length > 0) {
                 let minD = Infinity;
@@ -868,10 +782,7 @@
                      const dx = (e.x + e.width/2) - (player.x + PLAYER_SIZE/2);
                      const dy = (e.y + e.height/2) - (player.y + PLAYER_SIZE/2);
                      const d = dx*dx + dy*dy;
-                     if (d < minD) {
-                         minD = d;
-                         nearestEnemyId = e.id;
-                     }
+                     if (d < minD) { minD = d; nearestEnemyId = e.id; }
                 });
             }
 
@@ -888,34 +799,28 @@
                             width: GAME_WIDTH, 
                             height: GAME_HEIGHT, 
                             border: `24px solid ${biome.wall}`, 
-                            boxShadow: 'inset 0 0 50px rgba(0,0,0,0.8), 0 0 0 1000px #000' // Dark void outside map
+                            boxShadow: 'inset 0 0 50px rgba(0,0,0,0.8), 0 0 0 1000px #000' 
                         }}>
                         
-                        {/* Particles */}
                         {particles.map(pt => (
                             <div key={pt.id} className="absolute pointer-events-none"
                                 style={{ 
-                                    left: pt.x, top: pt.y, 
-                                    color: pt.color,
+                                    left: pt.x, top: pt.y, color: pt.color,
                                     fontSize: pt.type === 'dmg' ? '20px' : '14px',
-                                    fontWeight: 'bold',
-                                    textShadow: '1px 1px 0 #000'
+                                    fontWeight: 'bold', textShadow: '1px 1px 0 #000'
                                 }}>
                                 {pt.type === 'dmg' ? pt.value : pt.value}
                             </div>
                         ))}
 
-                        {/* Projectiles */}
                         {projectiles.map(pr => (
                             <div key={pr.id} className="absolute rounded-full"
                                 style={{ 
                                     left: pr.x, top: pr.y, width: 8, height: 8, 
-                                    backgroundColor: pr.color,
-                                    boxShadow: `0 0 5px ${pr.color}` 
+                                    backgroundColor: pr.color, boxShadow: `0 0 5px ${pr.color}` 
                                 }} />
                         ))}
 
-                        {/* Enemies */}
                         {enemies.map(en => (
                             <div key={en.id} className={`absolute transition-transform ${en.isHit > 0 ? 'brightness-200 scale-110' : ''}`}
                                 style={{ 
@@ -923,36 +828,28 @@
                                     backgroundColor: en.color,
                                     borderRadius: en.type === 'SLIME' ? '50% 50% 0 0' : '4px'
                                 }}>
-                                {/* Target Indicator */}
                                 {nearestEnemyId === en.id && (
                                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-red-500 target-indicator pointer-events-none z-10">
                                         <Icons.Target size={32} />
                                     </div>
                                 )}
-                                
-                                {/* HP Bar */}
                                 <div className="absolute -top-3 left-0 w-full h-1 bg-red-900">
                                     <div className="h-full bg-red-500" style={{ width: `${(en.hp / en.maxHp) * 100}%` }} />
                                 </div>
-                                {/* Face */}
                                 <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-black opacity-50" />
                                 <div className="absolute top-1/4 right-1/4 w-1 h-1 bg-black opacity-50" />
                             </div>
                         ))}
 
-                        {/* Player */}
                         <div className={`absolute transition-transform ${stateRef.current.invincible > 0 ? 'opacity-50' : ''}`}
                             style={{ 
-                                left: player.x, top: player.y, 
-                                width: PLAYER_SIZE, height: PLAYER_SIZE, 
+                                left: player.x, top: player.y, width: PLAYER_SIZE, height: PLAYER_SIZE, 
                                 color: CLASSES[player.classType].color 
                             }}>
                             {player.classType === 'knight' && <Icons.Sword className="w-full h-full" />}
                             {player.classType === 'hunter' && <Icons.Bow className="w-full h-full" />}
                             {player.classType === 'wizard' && <Icons.Staff className="w-full h-full" />}
                             {player.classType === 'assassin' && <Icons.Dagger className="w-full h-full" />}
-                            
-                            {/* Player Aura/Effect */}
                             {stateRef.current.invincible > 0 && <div className="absolute -inset-2 border-2 border-yellow-400 rounded-full animate-pulse" />}
                         </div>
                     </div>
@@ -964,7 +861,6 @@
                                 <span className="text-yellow-400 font-bold">Lv.{player.level}</span>
                                 <span className="text-white">{CLASSES[player.classType].name}</span>
                             </div>
-                            {/* Bars */}
                             <div className="w-32 h-3 bg-gray-800 mb-1 rounded overflow-hidden">
                                 <div className="h-full bg-red-500 transition-all" style={{ width: `${(player.hp / player.maxHp) * 100}%` }} />
                             </div>
@@ -983,7 +879,6 @@
                                     <Icons.Coin size={16} /> {player.gold}
                                 </div>
                             </div>
-                            {/* Logs */}
                             <div className="w-64 flex flex-col gap-1 items-end">
                                 {logs.map((l, i) => (
                                     <div key={i} className="text-sm text-white/80 bg-black/30 px-2 py-1 rounded">{l}</div>
@@ -992,7 +887,6 @@
                         </div>
                     </div>
                     
-                    {/* Artifacts Display */}
                     <div className="absolute bottom-20 left-4 flex gap-2 z-20">
                         {player.artifacts.map((artId, i) => {
                             const art = ARTIFACTS.find(a => a.id === artId);
@@ -1005,9 +899,8 @@
                         })}
                     </div>
 
-                    {/* Shop Modal */}
                     {showShop && (
-                        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4 pointer-events-auto">
                             <div className="bg-gray-800 border-2 border-yellow-600 rounded-lg p-6 max-w-lg w-full">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-bold text-yellow-400 flex items-center gap-2"><Icons.Shop /> 던전 상점</h2>
@@ -1040,23 +933,19 @@
                     <div className="absolute bottom-8 left-8 z-40">
                         <div className="relative w-32 h-32 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
                             <button className="d-pad-btn absolute top-2 left-1/2 -translate-x-1/2 w-10 h-10" 
-                                onTouchStart={(e)=>{e.preventDefault(); stateRef.current.keys['ArrowUp']=true;}} 
-                                onTouchEnd={(e)=>{e.preventDefault(); stateRef.current.keys['ArrowUp']=false;}}>
+                                {...bindDPad('ArrowUp')}>
                                 <Icons.ArrowUp />
                             </button>
                             <button className="d-pad-btn absolute bottom-2 left-1/2 -translate-x-1/2 w-10 h-10" 
-                                onTouchStart={(e)=>{e.preventDefault(); stateRef.current.keys['ArrowDown']=true;}} 
-                                onTouchEnd={(e)=>{e.preventDefault(); stateRef.current.keys['ArrowDown']=false;}}>
+                                {...bindDPad('ArrowDown')}>
                                 <Icons.ArrowDown />
                             </button>
                             <button className="d-pad-btn absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10" 
-                                onTouchStart={(e)=>{e.preventDefault(); stateRef.current.keys['ArrowLeft']=true;}} 
-                                onTouchEnd={(e)=>{e.preventDefault(); stateRef.current.keys['ArrowLeft']=false;}}>
+                                {...bindDPad('ArrowLeft')}>
                                 <Icons.ArrowLeft />
                             </button>
                             <button className="d-pad-btn absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10" 
-                                onTouchStart={(e)=>{e.preventDefault(); stateRef.current.keys['ArrowRight']=true;}} 
-                                onTouchEnd={(e)=>{e.preventDefault(); stateRef.current.keys['ArrowRight']=false;}}>
+                                {...bindDPad('ArrowRight')}>
                                 <Icons.ArrowRight />
                             </button>
                         </div>
@@ -1077,7 +966,7 @@
                             <Icons.Zap size={24} />
                         </button>
                         <button className="action-btn w-12 h-12 bg-green-500/80 text-white" 
-                            onClick={() => { /* Quick Potion if implemented */ }}>
+                             onClick={() => { /* Potion Placeholder */ }}>
                             <Icons.Heart size={20} />
                         </button>
                     </div>
